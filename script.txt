@@ -2,20 +2,10 @@
 local player = game.Players.LocalPlayer
 local camera = game.Workspace.CurrentCamera
 local mouse = player:GetMouse()
-local ativo = true  -- O ESP já estará ativado ao injetar o script
 
--- Cores para os inimigos (vermelho)
-local inimigoCor = Color3.fromRGB(255, 0, 0)
-
--- Função para projetar as coordenadas 3D no 2D (WorldToScreen)
-local function worldToScreen(position)
-    local screenPos, onScreen = camera:WorldToScreenPoint(position)
-    return screenPos, onScreen
-end
-
--- Função para desenhar caixas e nomes para inimigos
-local function desenharESP()
-    -- Limpar os ESPs anteriores
+-- Função para desenhar as linhas de ESP
+local function desenharLinhasESP()
+    -- Limpar as linhas antigas
     for _, v in ipairs(workspace:GetChildren()) do
         if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") then
             local humanoidRootPart = v.HumanoidRootPart
@@ -25,7 +15,7 @@ local function desenharESP()
         end
     end
 
-    -- Criar novos ESPs para inimigos
+    -- Criar novas linhas para os inimigos
     for _, v in ipairs(game.Players:GetPlayers()) do
         if v ~= player and v.Team ~= player.Team then  -- Inimigos (não da mesma equipe)
             local char = v.Character
@@ -34,24 +24,21 @@ local function desenharESP()
                 local dist = (humanoidRootPart.Position - camera.CFrame.Position).Magnitude
 
                 if dist <= 100 then  -- FOV de 100 studs
-                    -- Projeção do nome na tela, mesmo atrás da parede
-                    local screenPos, onScreen = worldToScreen(humanoidRootPart.Position)
-                    if onScreen then  -- Verifica se o personagem está visível na tela
-                        -- Criar o nome acima do personagem
-                        local esp = Instance.new("BillboardGui")
-                        esp.Adornee = humanoidRootPart
-                        esp.Size = UDim2.new(0, 200, 0, 50)
-                        esp.StudsOffset = Vector3.new(0, 2, 0)
-                        esp.Parent = char
+                    -- Criar a linha entre o jogador e o inimigo
+                    local linha = Instance.new("Part")
+                    linha.Size = Vector3.new(0.1, 0.1, (humanoidRootPart.Position - camera.CFrame.Position).Magnitude)
+                    linha.Position = (humanoidRootPart.Position + camera.CFrame.Position) / 2
+                    linha.Anchored = true
+                    linha.CanCollide = false
+                    linha.BrickColor = BrickColor.new("Bright red")  -- Cor da linha para inimigos
+                    linha.Parent = workspace
 
-                        local texto = Instance.new("TextLabel")
-                        texto.Text = v.Name
-                        texto.Size = UDim2.new(1, 0, 1, 0)
-                        texto.BackgroundTransparency = 1
-                        texto.TextColor3 = inimigoCor  -- Cor vermelha para inimigos
-                        texto.TextScaled = true
-                        texto.Parent = esp
-                    end
+                    -- A linha vai se orientar em direção ao inimigo
+                    local direction = (humanoidRootPart.Position - camera.CFrame.Position).unit
+                    linha.CFrame = CFrame.new(linha.Position, humanoidRootPart.Position)
+
+                    -- Adiciona a linha à parte do personagem para destruição futura
+                    linha.Name = "ESP"
                 end
             end
         end
@@ -61,7 +48,5 @@ end
 -- Loop para atualizar o ESP
 while true do
     wait(0.1)  -- Atualiza a cada 0.1 segundos
-    if ativo then
-        desenharESP()
-    end
+    desenharLinhasESP()
 end
